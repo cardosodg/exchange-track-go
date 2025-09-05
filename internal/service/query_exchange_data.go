@@ -1,7 +1,7 @@
 package service
 
 import (
-	"ExchangeTrack/internal/datetime"
+	"ExchangeTrack/internal/config"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -52,20 +52,20 @@ func Initialize() {
 	time.Sleep(5 * time.Second)
 	check_time()
 
-	date := time.Date(2025, 3, 18, 0, 0, 0, 0, time.UTC)
-	holidays, err := datetime.GetHolidays("2025")
-	checkHoliday := datetime.IsHoliday(date, holidays)
+	// date := time.Date(2025, 3, 18, 0, 0, 0, 0, time.UTC)
+	// holidays, err := datetime.GetHolidays("2025")
+	// checkHoliday := datetime.IsHoliday(date, holidays)
 
-	if err != nil {
-		fmt.Println("Erro:", err)
-		return
-	}
+	// if err != nil {
+	// 	fmt.Println("Erro:", err)
+	// 	return
+	// }
 
-	if checkHoliday {
-		fmt.Printf("A data %s é um feriado.\n", date.Format("2006-01-02"))
-	} else {
-		fmt.Printf("A data %s não é um feriado.\n", date.Format("2006-01-02"))
-	}
+	// if checkHoliday {
+	// 	fmt.Printf("A data %s é um feriado.\n", date.Format("2006-01-02"))
+	// } else {
+	// 	fmt.Printf("A data %s não é um feriado.\n", date.Format("2006-01-02"))
+	// }
 }
 
 func GetExchangeValues() ([]CurrencyData, error) {
@@ -73,13 +73,24 @@ func GetExchangeValues() ([]CurrencyData, error) {
 	var currencyValues []CurrencyData
 	var data map[string]map[string]string
 
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println("error")
-	}
-	err = json.NewDecoder(resp.Body).Decode(&data)
+	client := &http.Client{}
+	apiKey := config.GetApiKey()
 
-	resp.Body.Close()
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("x-api-key", apiKey)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("HTTP request failed: %v", err)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
 
 	for _, entry := range data {
 		code := fmt.Sprintf("%s-%s", entry["code"], entry["codein"])
