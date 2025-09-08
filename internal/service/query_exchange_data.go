@@ -2,6 +2,7 @@ package service
 
 import (
 	"ExchangeTrack/internal/config"
+	"ExchangeTrack/internal/model"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,29 +10,6 @@ import (
 	"strconv"
 	"time"
 )
-
-// type ExchangeData struct {
-// 	USDBRL ExchangeRate `json:"USDBRL"`
-// 	EURBRL ExchangeRate `json:"EURBRL"`
-// }
-
-// type ExchangeRate struct {
-// 	Bid        json.Number `json:"bid"`
-// 	High       json.Number `json:"high"`
-// 	Low        json.Number `json:"low"`
-// 	Timestamp  string      `json:"timestamp"`
-// 	CreateDate string      `json:"create_date"`
-// }
-
-type CurrencyData struct {
-	Code       string
-	Timestamp  string
-	CreateDate string
-	Bid        float64
-	High       float64
-	Low        float64
-	Average    float64
-}
 
 func check_time() {
 	start := time.Now()
@@ -68,9 +46,9 @@ func Initialize() {
 	// }
 }
 
-func GetExchangeValues() ([]CurrencyData, error) {
+func GetExchangeValues() ([]model.CurrencyData, error) {
 	url := "https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL"
-	var currencyValues []CurrencyData
+	var currencyValues []model.CurrencyData
 	var data map[string]map[string]string
 
 	client := &http.Client{}
@@ -116,7 +94,7 @@ func GetExchangeValues() ([]CurrencyData, error) {
 
 		average := (high + low) / 2
 
-		newCurrencyValue := CurrencyData{
+		newCurrencyValue := model.CurrencyData{
 			Code:       code,
 			Timestamp:  entry["timestamp"],
 			CreateDate: entry["create_date"],
@@ -134,9 +112,9 @@ func GetExchangeValues() ([]CurrencyData, error) {
 }
 
 func ExecuteReadings() {
-	var data []CurrencyData
+	var data []model.CurrencyData
 
-	for i := range 2 {
+	for i := range 1 {
 		fmt.Printf("Executing iteration %d\n", i+1)
 		data, _ = GetExchangeValues()
 
@@ -155,7 +133,7 @@ func ExecuteReadings() {
 func FinishReadings() {
 	fmt.Printf("Waiting 10 seconds to finish execution.\n")
 	time.Sleep(10 * time.Second)
-	var data []CurrencyData
+	var data []model.CurrencyData
 
 	data, _ = GetExchangeValues()
 
