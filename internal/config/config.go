@@ -14,10 +14,10 @@ type Config struct {
 }
 
 func LoadConfig() Config {
-	required := []string{"DB_USER", "DB_PASS", "DB_HOST", "DB_PORT", "DB_NAME", "API_KEY"}
+	required := []string{"DB_USER", "DB_PASS", "DB_HOST", "DB_PORT", "DB_NAME"}
 	for _, v := range required {
 		if os.Getenv(v) == "" {
-			log.Printf("⚠️  Variável de ambiente %s não está definida", v)
+			log.Fatal("Value not defined: ", v)
 		}
 	}
 
