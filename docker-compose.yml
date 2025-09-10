@@ -1,0 +1,29 @@
+services:
+  mariadb:
+    image: mariadb:10.6
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    ports:
+      - "${DB_PORT}:3306"
+    networks:
+      - exchangenet
+
+  exchangetrack:
+    build: .
+    container_name: exchangetrack
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+    networks:
+      - exchangenet
+
+networks:
+  exchangenet:
+    driver: bridge
