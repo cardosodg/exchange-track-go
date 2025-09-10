@@ -1,6 +1,8 @@
 package database
 
 import (
+	"ExchangeTrack/internal/config"
+	"ExchangeTrack/internal/model"
 	"database/sql"
 	"fmt"
 	"log"
@@ -8,33 +10,37 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type HolidayDB struct {
-	ID   int    `db:"id"`
-	Date string `db:"date"`
-	Name string `db:"name"`
-	Type string `db:"type"`
-	Year string `db:"year"`
-}
+func Connect() *sql.DB {
+	config := config.LoadConfig()
 
-type ExchangeDataDB struct {
-	ID         int     `db:"id"`
-	Bid        float64 `db:"bid"`
-	Timestamp  string  `db:"timestamp"`
-	CreateDate string  `db:"create_date"`
-	Type       string  `db:"type"`
-}
+	dnsRoot := fmt.Sprintf("%s:%s@tcp(%s:%s)/",
+		config.DBUser,
+		config.DBPass,
+		config.DBHost,
+		config.DBPort)
 
-type HistoricalExchange struct {
-	ID       int     `db:"id"`
-	Day      string  `db:"day"`
-	AvgBid   float64 `db:"avg_bid"`
-	FinalBid float64 `db:"final_bid"`
-	Type     string  `db:"type"`
-}
+	rootDB, err := sql.Open("mysql", dnsRoot)
 
-func Connect(user, pass, host, port, dbName string) *sql.DB {
+	if err != nil {
+		log.Fatal("Error connecting to MariaDB", err)
+	}
+	defer rootDB.Close()
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, pass, host, port, dbName)
+	_, err = rootDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", config.DBName))
+	if err != nil {
+		log.Fatal("Error creating database:", err)
+	}
+	log.Printf("Database %s verified/created\n", config.DBName)
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
+		config.DBUser,
+		config.DBPass,
+		config.DBHost,
+		config.DBPort,
+		config.DBName)
+
+	fmt.Println(dnsRoot)
+	fmt.Println(dsn)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -62,39 +68,76 @@ func IsTableEmpty(sql *sql.DB, tableName string) bool {
 	return true
 }
 
-func CreateTables(sql *sql.DB) bool {
-	fmt.Println("Table created")
-	return true
-}
+func CreateTables(db *sql.DB) {
+	queryRates := `
+	CREATE TABLE IF NOT EXISTS exchange_rates (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		code VARCHAR(10) NOT NULL,
+		timestamp VARCHAR(50),
+		create_date VARCHAR(50),
+		bid DOUBLE,
+		high DOUBLE,
+		low DOUBLE,
+		average DOUBLE
+	);`
 
-func InsertExchangeData(db *sql.DB, rate ExchangeDataDB) error {
-	query := `INSERT INTO exchange_rates (bid, timestamp, create_date, type) 
-			  VALUES (?, ?, ?, ?)`
+	queryHist := `
+	CREATE TABLE IF NOT EXISTS exchange_hist (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		code VARCHAR(10) NOT NULL,
+		timestamp VARCHAR(50),
+		create_date VARCHAR(50),
+		bid DOUBLE,
+		high DOUBLE,
+		low DOUBLE,
+		average DOUBLE
+	);`
 
-	_, err := db.Exec(query, rate.Bid, rate.Timestamp, rate.CreateDate, rate.Type)
+	_, err := db.Exec(queryRates)
 	if err != nil {
-		return fmt.Errorf("erro ao inserir dados: %v", err)
-	}
-	return nil
-}
-
-func InserAlltHolidayData(db *sql.DB, holidays []HolidayDB) error {
-	query := `INSERT INTO holidays (date, name, type, year) VALUES `
-
-	var values []any
-
-	for i, holiday := range holidays {
-		if i > 0 {
-			query += ", "
-		}
-		query += "(?, ?, ?, ?)"
-
-		values = append(values, holiday.Date, holiday.Name, holiday.Type, holiday.Year)
+		log.Fatal("Error in creating table exchange_rates", err)
 	}
 
-	_, err := db.Exec(query, values)
+	_, err = db.Exec(queryHist)
 	if err != nil {
-		return fmt.Errorf("error inserting data: %v", err)
+		log.Fatal("Error in creating table exchange_hist", err)
 	}
-	return nil
+
+	log.Println("Tables exchange_rates and exchange_hist created.")
 }
+
+func InsertExchangeData(db *sql.DB, table string, rate model.CurrencyData) error {
+	query := fmt.Sprintf(`
+	INSERT INTO %s (code, timestamp, create_date, bid, high, low, average)
+	VALUES (?, ?, ?, ?, ?, ?, ?)`, table)
+
+	_, err := db.Exec(query, rate.Code, rate.Timestamp, rate.CreateDate, rate.Bid, rate.High, rate.Low, rate.Average)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Currency %s successfully inserted into %s\n", rate.Code, table)
+	return nil
+
+}
+
+// func InserAlltHolidayData(db *sql.DB, holidays []HolidayDB) error {
+// 	query := `INSERT INTO holidays (date, name, type, year) VALUES `
+
+// 	var values []any
+
+// 	for i, holiday := range holidays {
+// 		if i > 0 {
+// 			query += ", "
+// 		}
+// 		query += "(?, ?, ?, ?)"
+
+// 		values = append(values, holiday.Date, holiday.Name, holiday.Type, holiday.Year)
+// 	}
+
+// 	_, err := db.Exec(query, values)
+// 	if err != nil {
+// 		return fmt.Errorf("error inserting data: %v", err)
+// 	}
+// 	return nil
+// }
