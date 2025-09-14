@@ -39,9 +39,6 @@ func Connect() *sql.DB {
 		config.DBPort,
 		config.DBName)
 
-	fmt.Println(dnsRoot)
-	fmt.Println(dsn)
-
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal("Error connecting to the database:", err)
@@ -106,19 +103,17 @@ func CreateTables(db *sql.DB) {
 	log.Println("Tables exchange_rates and exchange_hist created.")
 }
 
-func InsertExchangeData(db *sql.DB, table string, rate model.CurrencyData) error {
-	query := fmt.Sprintf(`
-	INSERT INTO %s (code, timestamp, create_date, bid, high, low, average)
-	VALUES (?, ?, ?, ?, ?, ?, ?)`, table)
+func InsertExchangeData(db *sql.DB, table string, rates []model.CurrencyData) error {
+	query := fmt.Sprintf(`INSERT INTO %s (code, timestamp, create_date, bid, high, low, average) VALUES (?, ?, ?, ?, ?, ?, ?)`, table)
 
-	_, err := db.Exec(query, rate.Code, rate.Timestamp, rate.CreateDate, rate.Bid, rate.High, rate.Low, rate.Average)
-	if err != nil {
-		return err
+	for _, rate := range rates {
+		_, err := db.Exec(query, rate.Code, rate.Timestamp, rate.CreateDate, rate.Bid, rate.High, rate.Low, rate.Average)
+		if err != nil {
+			return fmt.Errorf("error inserting %s: %v", rate.Code, err)
+		}
 	}
 
-	log.Printf("Currency %s successfully inserted into %s\n", rate.Code, table)
 	return nil
-
 }
 
 // func InserAlltHolidayData(db *sql.DB, holidays []HolidayDB) error {
