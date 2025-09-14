@@ -3,6 +3,7 @@ package datetime
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -25,9 +26,9 @@ func IsWeekend(date time.Time) bool {
 	return weekday == time.Saturday || weekday == time.Sunday
 }
 
-func GetHolidays(year string) ([]Holiday, error) {
+func GetHolidays(year int) ([]Holiday, error) {
 	// const url = "https://brasilapi.com.br/api/feriados/v1/2025"
-	url := fmt.Sprintf("https://brasilapi.com.br/api/feriados/v1/%s", year)
+	url := fmt.Sprintf("https://brasilapi.com.br/api/feriados/v1/%d", year)
 	var holidays []Holiday
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -51,14 +52,20 @@ func GetHolidays(year string) ([]Holiday, error) {
 }
 
 func InitializeData() {
-	currentYear := fmt.Sprintf("%d", time.Now().Year())
+	// currentYear := fmt.Sprintf("%d", time.Now().Year())
+	currentYear := time.Now().Year()
 	holidays, err := GetHolidays(currentYear)
 	fmt.Println(holidays)
 	fmt.Println(err)
 }
 
-func IsHoliday(date time.Time, holidays []Holiday) bool {
+func IsHoliday(date time.Time) bool {
 	dateStr := date.Format("2006-01-02")
+
+	holidays, err := GetHolidays(date.Year())
+	if err != nil {
+		log.Println(err)
+	}
 
 	for _, holiday := range holidays {
 		if holiday.Date == dateStr {
