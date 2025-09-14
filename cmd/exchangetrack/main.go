@@ -1,35 +1,59 @@
 package main
 
 import (
+	"ExchangeTrack/internal/database"
+	"ExchangeTrack/internal/datetime"
 	"ExchangeTrack/internal/service"
+	"fmt"
+	"log"
+	"os"
+	"time"
 )
 
 func main() {
-	service.Initialize()
-	service.ExecuteReadings()
-	service.FinishReadings()
+	if datetime.IsWeekend(time.Now()) {
+		log.Println("Today is the weekend. Nothing to do.")
+		os.Exit(0)
+	}
 
-	// // Carregar as configurações do arquivo .env
-	// cfg := config.LoadConfig()
+	if datetime.IsHoliday(time.Now()) {
+		log.Println("Today is a holiday. Nothing to do.")
+		os.Exit(0)
+	}
 
-	// // Conectar ao banco de dados
-	// db := database.Connect(cfg.DatabaseUser, cfg.DatabasePass, cfg.DatabaseHost, cfg.DatabasePort, cfg.DatabaseName)
-	// defer database.Close(db) // Fechar a conexão quando terminar
+	db := database.Connect()
+	defer database.Close(db)
+	database.CreateTables(db)
 
-	// // Criando um novo ExchangeRateDB para inserir
-	// rate := database.ExchangeDataDB{
-	// 	Bid:        "5.35",
-	// 	Timestamp:  "1743556263",
-	// 	CreateDate: "2025-04-01 22:11:03",
-	// 	Type:       "USDBRL",
-	// }
+	for i := 0; i < 3; i++ {
+		if !(datetime.IsBetween(time.Now())) {
+			log.Println("Finished collecting exchange data")
+			break
+		}
 
-	// // Inserir os dados no banco de dados
-	// err := database.InsertExchangeData(db, rate)
-	// if err != nil {
-	// 	log.Fatal("Erro ao inserir dados:", err)
-	// } else {
-	// 	fmt.Println("Dado inserido com sucesso!")
-	// }
+		data, err := service.GetExchangeValues()
+		if err != nil {
+			log.Println(err)
+		}
+
+		fmt.Println(data)
+
+		err = database.InsertExchangeData(db, "exchange_rates", data)
+		if err != nil {
+			log.Println(err)
+		}
+
+		time.Sleep(5 * time.Minute)
+	}
+
+	data, err := service.GetExchangeValues()
+	if err != nil {
+		log.Println(err)
+	}
+
+	database.InsertExchangeData(db, "exchange_hist", data)
+	if err != nil {
+		log.Println(err)
+	}
 
 }

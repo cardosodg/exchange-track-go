@@ -16,7 +16,7 @@ services:
   exchangetrack:
     build: .
     container_name: exchangetrack
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     depends_on:
