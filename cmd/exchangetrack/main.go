@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ExchangeTrack/internal/config"
 	"ExchangeTrack/internal/database"
 	"ExchangeTrack/internal/datetime"
 	"ExchangeTrack/internal/service"
@@ -21,17 +22,19 @@ func main() {
 		os.Exit(0)
 	}
 
+	currencyList := config.GetExchangeList()
+
 	db := database.Connect()
 	defer database.Close(db)
 	database.CreateTables(db)
 
-	for i := 0; i < 3; i++ {
+	for {
 		if !(datetime.IsBetween(time.Now())) {
 			log.Println("Finished collecting exchange data")
 			break
 		}
 
-		data, err := service.GetExchangeValues()
+		data, err := service.GetExchangeValues(currencyList.RealTime)
 		if err != nil {
 			log.Println(err)
 		}
@@ -46,7 +49,7 @@ func main() {
 		time.Sleep(5 * time.Minute)
 	}
 
-	data, err := service.GetExchangeValues()
+	data, err := service.GetExchangeValues(currencyList.RealTime)
 	if err != nil {
 		log.Println(err)
 	}

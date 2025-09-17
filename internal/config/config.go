@@ -13,6 +13,11 @@ type Config struct {
 	DBName string
 }
 
+type CurrencyConfig struct {
+	RealTime string
+	History  string
+}
+
 func LoadConfig() Config {
 	required := []string{"DB_USER", "DB_PASS", "DB_HOST", "DB_PORT", "DB_NAME"}
 	for _, v := range required {
@@ -36,4 +41,11 @@ func GetApiKey() string {
 		log.Fatal("EXCHANGE_KEY not defined.")
 	}
 	return key
+}
+
+func GetExchangeList() CurrencyConfig {
+	return CurrencyConfig{
+		RealTime: os.Getenv("EXCHANGE_RT"),
+		History:  os.Getenv("EXCHANGE_HIST"),
+	}
 }

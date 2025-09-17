@@ -115,24 +115,3 @@ func InsertExchangeData(db *sql.DB, table string, rates []model.CurrencyData) er
 
 	return nil
 }
-
-// func InserAlltHolidayData(db *sql.DB, holidays []HolidayDB) error {
-// 	query := `INSERT INTO holidays (date, name, type, year) VALUES `
-
-// 	var values []any
-
-// 	for i, holiday := range holidays {
-// 		if i > 0 {
-// 			query += ", "
-// 		}
-// 		query += "(?, ?, ?, ?)"
-
-// 		values = append(values, holiday.Date, holiday.Name, holiday.Type, holiday.Year)
-// 	}
-
-// 	_, err := db.Exec(query, values)
-// 	if err != nil {
-// 		return fmt.Errorf("error inserting data: %v", err)
-// 	}
-// 	return nil
-// }

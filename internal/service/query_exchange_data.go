@@ -8,46 +8,17 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
-func check_time() {
-	start := time.Now()
+// func GetExchangeHistory(currency string) {
+// 	url := fmt.Sprintf("https://economia.awesomeapi.com.br/json/daily/%s/90", currency)
+// 	var currencyValues []model.CurrencyData
+// 	var data []map[string]string
 
-	time.Sleep(2 * time.Second)
+// }
 
-	end := time.Now()
-
-	delta := end.Sub(start)
-	fmt.Printf("Time delta: %v\n", delta)
-}
-
-func Initialize() {
-	currentTime := time.Now()
-	fmt.Println("Current Time in String: ", currentTime.Format("2006-01-02T15:04:05"))
-	fmt.Println("ISO8601: ", time.Now().Format(time.RFC3339))
-
-	time.Sleep(5 * time.Second)
-	check_time()
-
-	// date := time.Date(2025, 3, 18, 0, 0, 0, 0, time.UTC)
-	// holidays, err := datetime.GetHolidays("2025")
-	// checkHoliday := datetime.IsHoliday(date, holidays)
-
-	// if err != nil {
-	// 	fmt.Println("Erro:", err)
-	// 	return
-	// }
-
-	// if checkHoliday {
-	// 	fmt.Printf("A data %s é um feriado.\n", date.Format("2006-01-02"))
-	// } else {
-	// 	fmt.Printf("A data %s não é um feriado.\n", date.Format("2006-01-02"))
-	// }
-}
-
-func GetExchangeValues() ([]model.CurrencyData, error) {
-	url := "https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL"
+func GetExchangeValues(currencyList string) ([]model.CurrencyData, error) {
+	url := fmt.Sprintf("https://economia.awesomeapi.com.br/json/last/%s", currencyList)
 	var currencyValues []model.CurrencyData
 	var data map[string]map[string]string
 
@@ -109,40 +80,4 @@ func GetExchangeValues() ([]model.CurrencyData, error) {
 	}
 
 	return currencyValues, err
-}
-
-func ExecuteReadings() {
-	var data []model.CurrencyData
-
-	for i := range 1 {
-		fmt.Printf("Executing iteration %d\n", i+1)
-		data, _ = GetExchangeValues()
-
-		for _, item := range data {
-			currency, err := json.MarshalIndent(item, "", " ")
-			if err != nil {
-				panic(err)
-			}
-			fmt.Println(string(currency))
-		}
-		fmt.Println(" ")
-		time.Sleep(5 * time.Second)
-	}
-}
-
-func FinishReadings() {
-	fmt.Printf("Waiting 10 seconds to finish execution.\n")
-	time.Sleep(10 * time.Second)
-	var data []model.CurrencyData
-
-	data, _ = GetExchangeValues()
-
-	for _, item := range data {
-		currency, err := json.MarshalIndent(item, "", " ")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(string(currency))
-	}
-	fmt.Println("End.")
 }

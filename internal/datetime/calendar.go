@@ -27,7 +27,6 @@ func IsWeekend(date time.Time) bool {
 }
 
 func GetHolidays(year int) ([]Holiday, error) {
-	// const url = "https://brasilapi.com.br/api/feriados/v1/2025"
 	url := fmt.Sprintf("https://brasilapi.com.br/api/feriados/v1/%d", year)
 	var holidays []Holiday
 
@@ -49,14 +48,6 @@ func GetHolidays(year int) ([]Holiday, error) {
 	}
 
 	return holidays, nil
-}
-
-func InitializeData() {
-	// currentYear := fmt.Sprintf("%d", time.Now().Year())
-	currentYear := time.Now().Year()
-	holidays, err := GetHolidays(currentYear)
-	fmt.Println(holidays)
-	fmt.Println(err)
 }
 
 func IsHoliday(date time.Time) bool {
