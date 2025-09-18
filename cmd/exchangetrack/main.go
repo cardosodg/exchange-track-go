@@ -49,7 +49,7 @@ func main() {
 		time.Sleep(5 * time.Minute)
 	}
 
-	data, err := service.GetExchangeValues(currencyList.RealTime)
+	data, err := service.GetExchangeValues(currencyList.History)
 	if err != nil {
 		log.Println(err)
 	}
