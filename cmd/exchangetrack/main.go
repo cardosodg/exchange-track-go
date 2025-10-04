@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -27,6 +28,27 @@ func main() {
 	db := database.Connect()
 	defer database.Close(db)
 	database.CreateTables(db)
+
+	database.ClearExchangeRates(db)
+
+	currencies := strings.Split(currencyList.History, ",")
+	for _, currency := range currencies {
+		count, countErr := database.CountCurrencyHistory(db, string(currency))
+		if countErr != nil {
+			log.Printf("Unable to get currency %s count registries", string(currency))
+			continue
+		}
+		if count == 0 {
+			data, err := service.GetExchangeHistory(string(currency))
+			if err != nil {
+				log.Printf("Unable to get currency %s history", string(currency))
+				continue
+			}
+
+			database.InsertExchangeData(db, "exchange_hist", data)
+		}
+
+	}
 
 	for {
 		if !(datetime.IsBetween(time.Now())) {
@@ -49,7 +71,8 @@ func main() {
 		time.Sleep(5 * time.Minute)
 	}
 
-	data, err := service.GetExchangeValues(currencyList.History)
+	time.Sleep(30 * time.Second)
+	data, err := service.GetExchangesDayValue(currencyList.History)
 	if err != nil {
 		log.Println(err)
 	}

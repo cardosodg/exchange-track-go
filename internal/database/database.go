@@ -60,9 +60,26 @@ func Close(db *sql.DB) {
 	}
 }
 
-func IsTableEmpty(sql *sql.DB, tableName string) bool {
-	fmt.Println(tableName)
-	return true
+func ClearExchangeRates(sql *sql.DB) {
+	query := "DELETE FROM exchange_rates"
+
+	err := sql.QueryRow(query)
+	if err != nil {
+		log.Println("Unable to clear exchange data")
+	}
+}
+
+func CountCurrencyHistory(sql *sql.DB, currency string) (int, error) {
+	query := "SELECT COUNT(*) FROM exchange_hist WHERE code = ?"
+
+	var count int
+	err := sql.QueryRow(query, currency).Scan(&count)
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
+
 }
 
 func CreateTables(db *sql.DB) {
