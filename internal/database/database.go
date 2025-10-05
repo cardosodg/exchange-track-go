@@ -61,12 +61,15 @@ func Close(db *sql.DB) {
 }
 
 func ClearExchangeRates(sql *sql.DB) {
-	query := "DELETE FROM exchange_rates"
+	query := "DELETE FROM exchange_rates;"
 
-	err := sql.QueryRow(query)
+	result, err := sql.Exec(query)
 	if err != nil {
 		log.Println("Unable to clear exchange data")
 	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("Deleted %d rows from exchange_rates.\n", rowsAffected)
 }
 
 func CountCurrencyHistory(sql *sql.DB, currency string) (int, error) {
