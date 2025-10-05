@@ -3,7 +3,7 @@ FROM golang:1.24.3-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache git ca-certificates bash
+RUN apk add --no-cache git ca-certificates bash tzdata
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -17,7 +17,7 @@ FROM alpine:latest
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates bash
+RUN apk add --no-cache ca-certificates bash tzdata
 
 COPY --from=builder /app/exchangetrack .
 

@@ -23,6 +23,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	timeLocation, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		log.Fatal("Error loading location:", err)
+	}
+
 	currencyList := config.GetExchangeList()
 
 	db := database.Connect()
@@ -51,7 +56,7 @@ func main() {
 	}
 
 	for {
-		if !(datetime.IsBetween(time.Now())) {
+		if !(datetime.IsBetween(time.Now().In(timeLocation))) {
 			log.Println("Finished collecting exchange data")
 			break
 		}
