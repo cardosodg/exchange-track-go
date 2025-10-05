@@ -152,7 +152,7 @@ func GetExchangesDayValue(currencyList string) ([]model.CurrencyData, error) {
 		timestamp, createDate := TruncateTimestampToDateUTC(currencyValues[i].Timestamp)
 
 		currencyValues[i].Timestamp = timestamp
-		currencyValues[i].Timestamp = createDate
+		currencyValues[i].CreateDate = createDate
 	}
 
 	return currencyValues, nil
