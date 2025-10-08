@@ -11,16 +11,13 @@ import (
 	"time"
 )
 
-func TruncateTimestampToDateUTC(timestamp string) (string, string) {
+func TruncateDate(timestamp string) string {
 	ts, _ := strconv.ParseInt(timestamp, 10, 64)
 
-	t := time.Unix(ts, 0).UTC()
-	tZero := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+	t := time.Unix(ts, 0)
+	dateStr := t.Format("2006-01-02")
 
-	timestampStr := strconv.FormatInt(tZero.Unix(), 10)
-	dateStr := tZero.Format("2006-01-02")
-
-	return timestampStr, dateStr
+	return dateStr
 }
 
 func GetExchangeHistory(currency string) ([]model.CurrencyData, error) {
@@ -55,11 +52,11 @@ func GetExchangeHistory(currency string) ([]model.CurrencyData, error) {
 
 		average := (high + low) / 2
 
-		timestamp, createDate := TruncateTimestampToDateUTC(entry["timestamp"])
+		createDate := TruncateDate(entry["timestamp"])
 
 		newCurrencyValue := model.CurrencyData{
 			Code:       code,
-			Timestamp:  timestamp,
+			Timestamp:  entry["timestamp"],
 			CreateDate: createDate,
 			Bid:        bid,
 			High:       high,
@@ -149,9 +146,7 @@ func GetExchangesDayValue(currencyList string) ([]model.CurrencyData, error) {
 	}
 
 	for i := range currencyValues {
-		timestamp, createDate := TruncateTimestampToDateUTC(currencyValues[i].Timestamp)
-
-		currencyValues[i].Timestamp = timestamp
+		createDate := TruncateDate(currencyValues[i].Timestamp)
 		currencyValues[i].CreateDate = createDate
 	}
 
