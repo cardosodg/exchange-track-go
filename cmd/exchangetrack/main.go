@@ -34,7 +34,10 @@ func main() {
 	defer database.Close(db)
 	database.CreateTables(db)
 
-	database.ClearExchangeRates(db)
+	if !(datetime.IsBetween(time.Now().In(timeLocation))) {
+		log.Println("Clearing exchange rates.")
+		database.ClearExchangeRates(db)
+	}
 
 	currencies := strings.Split(currencyList.History, ",")
 	for _, currency := range currencies {
@@ -73,7 +76,7 @@ func main() {
 			log.Println(err)
 		}
 
-		time.Sleep(5 * time.Minute)
+		time.Sleep(3 * time.Hour)
 	}
 
 	time.Sleep(30 * time.Second)
