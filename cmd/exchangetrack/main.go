@@ -34,9 +34,17 @@ func main() {
 	defer database.Close(db)
 	database.CreateTables(db)
 
-	if !(datetime.IsBetween(time.Now().In(timeLocation))) {
+	if datetime.IsBeforeHour(time.Now().In(timeLocation), 9) {
 		log.Println("Clearing exchange rates.")
 		database.ClearExchangeRates(db)
+	}
+
+	for {
+		if datetime.IsAfterHour(time.Now().In(timeLocation), 9) {
+			break
+		}
+		log.Println("Waiting to start tracking.")
+		time.Sleep(5 * time.Minute)
 	}
 
 	currencies := strings.Split(currencyList.History, ",")
@@ -76,10 +84,11 @@ func main() {
 			log.Println(err)
 		}
 
-		time.Sleep(3 * time.Hour)
+		time.Sleep(5 * time.Minute)
 	}
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(3 * time.Second)
+
 	data, err := service.GetExchangesDayValue(currencyList.History)
 	if err != nil {
 		log.Println(err)

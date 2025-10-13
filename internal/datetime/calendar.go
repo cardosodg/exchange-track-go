@@ -14,6 +14,14 @@ type Holiday struct {
 	Type string `json:"type"`
 }
 
+func IsBeforeHour(date time.Time, hour int) bool {
+	return date.Hour() < hour
+}
+
+func IsAfterHour(date time.Time, hour int) bool {
+	return date.Hour() > hour
+}
+
 func IsBetween(date time.Time) bool {
 	start := time.Date(date.Year(), date.Month(), date.Day(), 9, 0, 0, 0, date.Location())
 	end := time.Date(date.Year(), date.Month(), date.Day(), 17, 0, 0, 0, date.Location())
