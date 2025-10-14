@@ -19,7 +19,7 @@ func IsBeforeHour(date time.Time, hour int) bool {
 }
 
 func IsAfterHour(date time.Time, hour int) bool {
-	return date.Hour() > hour
+	return date.Hour() >= hour
 }
 
 func IsBetween(date time.Time) bool {
