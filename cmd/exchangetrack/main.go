@@ -87,7 +87,7 @@ func main() {
 		time.Sleep(5 * time.Minute)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(3 * time.Hour)
 
 	data, err := service.GetExchangesDayValue(currencyList.History)
 	if err != nil {
