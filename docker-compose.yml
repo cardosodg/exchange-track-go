@@ -10,6 +10,9 @@ services:
       MYSQL_PASSWORD: ${DB_PASS}
     ports:
       - "${DB_PORT}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
     networks:
       - exchangenet
 
@@ -19,11 +22,12 @@ services:
     restart: no
     env_file:
       - .env
-    depends_on:
-      - mariadb
     networks:
       - exchangenet
 
 networks:
   exchangenet:
     driver: bridge
+
+volumes:
+  mariadb_data:
