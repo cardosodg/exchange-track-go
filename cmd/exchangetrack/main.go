@@ -5,7 +5,6 @@ import (
 	"ExchangeTrack/internal/database"
 	"ExchangeTrack/internal/datetime"
 	"ExchangeTrack/internal/service"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -89,7 +88,7 @@ func main() {
 			log.Println(err)
 		}
 
-		fmt.Println(data)
+		log.Println(data)
 
 		err = database.InsertExchangeData(db, "exchange_rates", data)
 		if err != nil {
