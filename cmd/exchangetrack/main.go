@@ -30,9 +30,21 @@ func main() {
 
 	currencyList := config.GetExchangeList()
 
-	db := database.Connect()
+	db, err := database.Connect()
+	if err != nil {
+		log.Println(err)
+	}
 	defer database.Close(db)
-	database.CreateTables(db)
+
+	err = database.WaitForDB(db, 10, time.Minute)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db, err = database.Migrate(db)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if datetime.IsBeforeHour(time.Now().In(timeLocation), 9) {
 		log.Println("Clearing exchange rates.")

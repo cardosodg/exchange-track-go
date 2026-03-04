@@ -3,54 +3,31 @@ package database
 import (
 	"ExchangeTrack/internal/config"
 	"ExchangeTrack/internal/model"
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func Connect() *sql.DB {
-	config := config.LoadConfig()
+func Connect() (*sql.DB, error) {
+	cfg := config.LoadConfig()
 
-	dnsRoot := fmt.Sprintf("%s:%s@tcp(%s:%s)/",
-		config.DBUser,
-		config.DBPass,
-		config.DBHost,
-		config.DBPort)
-
-	rootDB, err := sql.Open("mysql", dnsRoot)
-
-	if err != nil {
-		log.Fatal("Error connecting to MariaDB", err)
-	}
-	defer rootDB.Close()
-
-	_, err = rootDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", config.DBName))
-	if err != nil {
-		log.Fatal("Error creating database:", err)
-	}
-	log.Printf("Database %s verified/created\n", config.DBName)
-
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		config.DBUser,
-		config.DBPass,
-		config.DBHost,
-		config.DBPort,
-		config.DBName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/?parseTime=true",
+		cfg.DBUser,
+		cfg.DBPass,
+		cfg.DBHost,
+		cfg.DBPort,
+	)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatal("Error connecting to the database:", err)
+		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatal("Database inaccessible:", err)
-	}
-
-	log.Println("Successfully connected to the database!")
-	return db
+	return db, nil
 }
 
 func Close(db *sql.DB) {
@@ -58,6 +35,99 @@ func Close(db *sql.DB) {
 		db.Close()
 		log.Println("Database connection closed.")
 	}
+}
+
+func WaitForDB(db *sql.DB, maxRetries int, interval time.Duration) error {
+	var err error
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+		err = db.PingContext(ctx)
+		cancel()
+
+		if err == nil {
+			log.Println("Database connection established successfully.")
+			return nil
+		}
+
+		log.Printf(
+			"Database not ready (attempt %d/%d): %v",
+			attempt,
+			maxRetries,
+			err,
+		)
+
+		if attempt < maxRetries {
+			log.Printf("Retrying in %s...\n", interval)
+			time.Sleep(interval)
+		}
+	}
+
+	return fmt.Errorf(
+		"database unreachable after %d attempts: %w",
+		maxRetries,
+		err,
+	)
+}
+
+func Migrate(rootDB *sql.DB) (*sql.DB, error) {
+	queryRates := `
+	CREATE TABLE IF NOT EXISTS exchange_rates (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		code VARCHAR(10) NOT NULL,
+		timestamp VARCHAR(50),
+		create_date VARCHAR(50),
+		bid DOUBLE,
+		high DOUBLE,
+		low DOUBLE,
+		average DOUBLE
+	);`
+
+	queryHist := `
+	CREATE TABLE IF NOT EXISTS exchange_hist (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		code VARCHAR(10) NOT NULL,
+		timestamp VARCHAR(50),
+		create_date VARCHAR(50),
+		bid DOUBLE,
+		high DOUBLE,
+		low DOUBLE,
+		average DOUBLE
+	);`
+	config := config.LoadConfig()
+	_, err := rootDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", config.DBName))
+	if err != nil {
+		return nil, fmt.Errorf("Error creating database: %w", err)
+	}
+	log.Printf("Database %s verified/created\n", config.DBName)
+	rootDB.Close()
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
+		config.DBUser,
+		config.DBPass,
+		config.DBHost,
+		config.DBPort,
+		config.DBName,
+	)
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to database %s: %w", config.DBName, err)
+	}
+
+	_, err = db.Exec(queryRates)
+	if err != nil {
+		return nil, fmt.Errorf("Error in creating table exchange_rates: %w", err)
+	}
+
+	_, err = db.Exec(queryHist)
+	if err != nil {
+		return nil, fmt.Errorf("Error in creating table exchange_hist: %w", err)
+	}
+
+	log.Println("Tables exchange_rates and exchange_hist created.")
+	return db, nil
 }
 
 func ClearExchangeRates(sql *sql.DB) {
@@ -83,44 +153,6 @@ func CountCurrencyHistory(sql *sql.DB, currency string) (int, error) {
 
 	return count, nil
 
-}
-
-func CreateTables(db *sql.DB) {
-	queryRates := `
-	CREATE TABLE IF NOT EXISTS exchange_rates (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-		code VARCHAR(10) NOT NULL,
-		timestamp VARCHAR(50),
-		create_date VARCHAR(50),
-		bid DOUBLE,
-		high DOUBLE,
-		low DOUBLE,
-		average DOUBLE
-	);`
-
-	queryHist := `
-	CREATE TABLE IF NOT EXISTS exchange_hist (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-		code VARCHAR(10) NOT NULL,
-		timestamp VARCHAR(50),
-		create_date VARCHAR(50),
-		bid DOUBLE,
-		high DOUBLE,
-		low DOUBLE,
-		average DOUBLE
-	);`
-
-	_, err := db.Exec(queryRates)
-	if err != nil {
-		log.Fatal("Error in creating table exchange_rates", err)
-	}
-
-	_, err = db.Exec(queryHist)
-	if err != nil {
-		log.Fatal("Error in creating table exchange_hist", err)
-	}
-
-	log.Println("Tables exchange_rates and exchange_hist created.")
 }
 
 func InsertExchangeData(db *sql.DB, table string, rates []model.CurrencyData) error {
