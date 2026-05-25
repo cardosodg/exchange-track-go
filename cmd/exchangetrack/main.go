@@ -98,7 +98,13 @@ func main() {
 		time.Sleep(5 * time.Minute)
 	}
 
-	time.Sleep(3 * time.Hour)
+	for {
+		if datetime.IsAfterHour(time.Now().In(timeLocation), 20) {
+			break
+		}
+		log.Printf("End-of-day collection pending")
+		time.Sleep(10 * time.Minute)
+	}
 
 	data, err := service.GetExchangesDayValue(currencyList.History)
 	if err != nil {
