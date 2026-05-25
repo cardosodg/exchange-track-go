@@ -8,11 +8,8 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASS}
-    ports:
-      - "${DB_PORT}:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
-
     networks:
       - exchangenet
 
@@ -28,6 +25,7 @@ services:
 networks:
   exchangenet:
     driver: bridge
+    name: exchangenet
 
 volumes:
   mariadb_data:
