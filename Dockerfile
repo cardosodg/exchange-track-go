@@ -21,4 +21,6 @@ RUN apk add --no-cache ca-certificates bash tzdata
 
 COPY --from=builder /app/exchangetrack .
 
-CMD ["./exchangetrack"]
+ENTRYPOINT ["./exchangetrack"]
+
+CMD []

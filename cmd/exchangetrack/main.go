@@ -5,60 +5,51 @@ import (
 	"ExchangeTrack/internal/database"
 	"ExchangeTrack/internal/datetime"
 	"ExchangeTrack/internal/service"
+	"database/sql"
+	"flag"
 	"log"
 	"os"
 	"strings"
 	"time"
 )
 
-func main() {
-	if datetime.IsWeekend(time.Now()) {
+func checkNonWorkingDay() {
+	now := time.Now()
+
+	if datetime.IsWeekend(now) {
 		log.Println("Today is the weekend. Nothing to do.")
 		os.Exit(0)
 	}
 
-	if datetime.IsHoliday(time.Now()) {
+	if datetime.IsHoliday(now) {
 		log.Println("Today is a holiday. Nothing to do.")
 		os.Exit(0)
 	}
+}
 
-	timeLocation, err := time.LoadLocation("America/Sao_Paulo")
-	if err != nil {
-		log.Fatal("Error loading location:", err)
-	}
-
-	currencyList := config.GetExchangeList()
-
+func initDatabase() (*sql.DB, error) {
 	db, err := database.Connect()
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
-	defer database.Close(db)
 
 	err = database.WaitForDB(db, 10, time.Minute)
 	if err != nil {
-		log.Fatal(err)
+		database.Close(db)
+		return nil, err
 	}
 
 	db, err = database.Migrate(db)
 	if err != nil {
-		log.Fatal(err)
+		database.Close(db)
+		return nil, err
 	}
 
-	if datetime.IsBeforeHour(time.Now().In(timeLocation), 9) {
-		log.Println("Clearing exchange rates.")
-		database.ClearExchangeRates(db)
-	}
+	return db, nil
+}
 
-	for {
-		if datetime.IsAfterHour(time.Now().In(timeLocation), 9) {
-			break
-		}
-		log.Println("Waiting to start tracking.")
-		time.Sleep(5 * time.Minute)
-	}
-
-	currencies := strings.Split(currencyList.History, ",")
+func runInitialHistory(db *sql.DB, historyConfig string) {
+	currencies := strings.Split(historyConfig, ",")
 	for _, currency := range currencies {
 		count, countErr := database.CountCurrencyHistory(db, string(currency))
 		if countErr != nil {
@@ -74,7 +65,33 @@ func main() {
 
 			database.InsertExchangeData(db, "exchange_hist", data)
 		}
+	}
+}
 
+func runManualHistory(db *sql.DB, historyConfig string) {
+	currencies := strings.Split(historyConfig, ",")
+	for _, currency := range currencies {
+		data, err := service.GetExchangeHistory(string(currency))
+		if err != nil {
+			log.Printf("Unable to get currency %s history", string(currency))
+			continue
+		}
+		database.InsertExchangeData(db, "exchange_hist", data)
+	}
+}
+
+func runExchangeTracker(db *sql.DB, timeLocation *time.Location, currencyList config.CurrencyConfig) {
+	if datetime.IsBeforeHour(time.Now().In(timeLocation), 9) {
+		log.Println("Clearing exchange rates.")
+		database.ClearExchangeRates(db)
+	}
+
+	for {
+		if datetime.IsAfterHour(time.Now().In(timeLocation), 9) {
+			break
+		}
+		log.Println("Waiting to start tracking.")
+		time.Sleep(5 * time.Minute)
 	}
 
 	for {
@@ -111,9 +128,39 @@ func main() {
 		log.Println(err)
 	}
 
-	database.InsertExchangeData(db, "exchange_hist", data)
+	err = database.InsertExchangeData(db, "exchange_hist", data)
 	if err != nil {
 		log.Println(err)
 	}
+}
 
+func main() {
+	checkNonWorkingDay()
+
+	timeLocation, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		log.Fatal("Error loading location:", err)
+	}
+
+	currencyList := config.GetExchangeList()
+
+	db, err := initDatabase()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer database.Close(db)
+
+	runHistory := flag.Bool("run-history", false, "Executes only the history data fetch")
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	if *runHistory {
+		runManualHistory(db, currencyList.History)
+		log.Println("History fetch completed via flag. Exiting.")
+		return
+	}
+
+	runInitialHistory(db, currencyList.History)
+
+	runExchangeTracker(db, timeLocation, currencyList)
 }
