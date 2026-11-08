@@ -1,6 +1,6 @@
 module ExchangeTrack
 
-go 1.26.4
+go 1.27.3
 
 require github.com/go-sql-driver/mysql v1.9.1
 
